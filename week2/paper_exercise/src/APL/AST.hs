@@ -1,6 +1,5 @@
 module APL.AST
   ( Name,
-    Term (..),
   )
 where
 
@@ -8,9 +7,3 @@ where
 
 type Name = String
 
-data Term
-  = Var Name
-  | Con Int
-  | Add Term Term
-  | Lam Name Term
-  | App Term Term

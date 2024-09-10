@@ -4,8 +4,6 @@ module APL.AST
   )
 where
 
-import Control.Monad (ap, liftM)
-
 type VName = String
 
 data Exp
@@ -24,3 +22,13 @@ data Exp
   | Apply Exp Exp
   | TryCatch Exp Exp
   deriving (Eq, Show)
+
+-- data Val
+--   = ValInt Integer
+--   | ValBool Bool
+--   | ValFun Env VName Exp
+--   deriving (Eq, Show)
+--
+--   Env -> Exp -> EvalM Val
+--
+-- type Env = [(VName, Val)]
