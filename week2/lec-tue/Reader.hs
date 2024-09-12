@@ -54,6 +54,12 @@ canBothVote'' age1 age2 =
   constant (&&) `apply` canVote age1 `apply` canVote age2
 
 -- instances
+instance Functor (Reader env) where
+    fmap = readerMap
+
+instance Applicative (Reader env) where
+    pure = constant
+    (<*>) = apply
 
 people :: Reader Country [Age]
 people = Reader $ \country ->

@@ -77,16 +77,16 @@ that failure.
 newtype EvalM a = EvalM (Either Error a)
 
 instance Functor EvalM where
-  fmap _ (Left e) = Left e
-  fmap f (Right x) = Right (f x)
+  fmap _ (EvalM (Left e))  = EvalM $ Left e
+  fmap f (EvalM (Right x)) = EvalM $ Right $ f x
 
   -- Alternatively: fmap = liftM
 
 instance Applicative EvalM where
   pure x = EvalM $ Right x
-  EvalM (Left e)  <*> _               = Left e
-  _               <*> EvalM (Left e)  = Left e
-  EvalM (Right f) <*> EvalM (Right x) = Right (f x)
+  EvalM (Left e)  <*> _               = EvalM (Left e)
+  _               <*> EvalM (Left e)  = EvalM (Left e)
+  EvalM (Right f) <*> EvalM (Right x) = EvalM (Right (f x))
 
   -- Alternatively: (<*>) = ap
 
@@ -315,8 +315,8 @@ eval (Var v) = do
     Just x -> pure x
     Nothing -> failure $ "Unknown variable: " ++ v
 eval (Add e1 e2) = do
-  x <- eval env e1
-  y <- eval env e2
+  x <- eval e1
+  y <- eval e2
   case (x, y) of
     (ValInt x', ValInt y') -> pure $ ValInt $ x' + y'
     _ -> failure "Non-integer operand"
