@@ -22,7 +22,6 @@ data Exp
   | Lambda VName Exp
   | Apply Exp Exp
   | TryCatch Exp Exp
-  | H
   deriving (Eq, Show)
 
 printExp :: Exp -> String
@@ -41,9 +40,3 @@ printExp (Lambda name body) = "(\\" ++ name ++ " -> " ++ printExp body ++ ")"
 printExp (Apply f (Apply f' x)) = printExp f ++ " (" ++ printExp f' ++ printExp x ++ ")"
 printExp (Apply f x) = printExp f ++ " " ++ printExp x
 printExp (TryCatch body handler) = "(try " ++ printExp body ++ " catch " ++ printExp handler ++ ")"
-
-hello :: Exp -> Exp -> Exp
-hello e1 _ = e1
-
-cat :: Exp -> Exp
-cat e1 = e1
