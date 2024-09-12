@@ -185,13 +185,3 @@ tests =
           --   eval envEmpty (Let "x" (Lambda "y" (Apply (Var "y") (Var "y"))) (Apply (Var "x") (Var "x")))
           --     @?= Right (ValInt 8)
     ]
-
-term :: Either String Val
-term =
-  eval
-    envEmpty
-    ( Let
-        "x"
-        (Lambda "y" (Apply (Var "y") (Var "y")))
-        (Apply (Var "x") (Var "x"))
-    )

@@ -45,7 +45,7 @@ tests =
       --
       testCase "Apply" $
         printExp printApply
-          @?= "(((2 / 1) True) 3)",
+          @?= "(2 / 1) True 3",
       --
       testCase
         "TryCatch"

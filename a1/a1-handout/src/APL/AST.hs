@@ -27,7 +27,7 @@ data Exp
 printExp :: Exp -> String
 printExp (CstInt n) = show n
 printExp (CstBool b) = show b
-printExp (Var x) = show x
+printExp (Var x) = x
 printExp (Add x y) = "(" ++ printExp x ++ " + " ++ printExp y ++ ")"
 printExp (Sub x y) = "(" ++ printExp x ++ " - " ++ printExp y ++ ")"
 printExp (Mul x y) = "(" ++ printExp x ++ " * " ++ printExp y ++ ")"
