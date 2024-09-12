@@ -30,14 +30,13 @@ type Error = String
 
 newtype EvalM a = EvalM (Env -> Either Error a)
 
-eitherBind :: Either e a -> (a -> Either e b) -> Either e b
-eitherBind (Left e) _ = Left e
-eitherBind (Right x) f = f x
-
+-- Monad implementation
 instance Monad EvalM where
-  EvalM a >>= f = EvalM $ \env ->
-    let x' = a env
-     in eitherBind x' (runEval . f)
+  EvalM x >>= f = EvalM $ \env ->
+    do
+      x' <- x env
+      let EvalM y = f x'
+      y env
 
 instance Functor EvalM where
   fmap = liftM

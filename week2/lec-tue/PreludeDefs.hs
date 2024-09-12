@@ -1,7 +1,7 @@
 data Maybe a = Nothing | Just a
 
 class Functor f where
-    fmap :: (a -> b) -> f a -> f b
+  fmap :: (a -> b) -> f a -> f b
 
 {-
 Functor laws:
@@ -9,13 +9,14 @@ Functor laws:
     Composition: fmap (f . g) = fmap f . fmap g
  -}
 
-(<$>) :: Functor f => (a -> b) -> f a -> f b
+(<$>) :: (Functor f) => (a -> b) -> f a -> f b
 (<$>) = fmap
 
-class Functor f => Applicative f where
-    pure :: a -> f a
-    (<*>) :: f (a -> b) -> f a -> f b
-    -- <*> is left-associative
+class (Functor f) => Applicative f where
+  pure :: a -> f a
+  (<*>) :: f (a -> b) -> f a -> f b
+
+-- <*> is left-associative
 
 {-
 Applicative laws:
@@ -25,9 +26,10 @@ Applicative laws:
     Interchange:    f <*> pure x = pure (\g -> g x) <*> f
  -}
 
-class Applicative m => Monad m where
-    (>>=) :: m a -> (a -> m b) -> m b
-    -- >>= is left-associative
+class (Applicative m) => Monad m where
+  (>>=) :: m a -> (a -> m b) -> m b
+
+-- >>= is left-associative
 
 {-
 Monad laws:
