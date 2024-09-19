@@ -4,6 +4,7 @@ module APL.Eval
     eval,
     runEval,
     Error,
+    Console,
   )
 where
 
@@ -34,7 +35,9 @@ storeExtend key val store = (key, val) : filter (\(y, _) -> y /= key) store
 
 type Error = String
 
-type State = [String]
+type Console = [String]
+
+type State = (Console, Store)
 
 newtype EvalM a = EvalM (Env -> Store -> (State, Either Error a))
 
@@ -42,26 +45,26 @@ instance Functor EvalM where
   fmap = liftM
 
 instance Applicative EvalM where
-  pure x = EvalM $ \_ _ -> ([], Right x)
+  pure x = EvalM $ \_ store -> (([], store), Right x)
   (<*>) = ap
 
 instance Monad EvalM where
   EvalM x >>= f = EvalM $ \env store ->
     case x env store of
       (s, Left err) -> (s, Left err)
-      (s, Right x') ->
+      ((console, store'), Right x') ->
         let EvalM y = f x'
-            (s', res) = y env store
-         in (combineStates s s', res)
+            (state', res) = y env store'
+         in (combineStates (console, store') state', res)
 
 askEnv :: EvalM Env
-askEnv = EvalM $ \env _ -> ([], Right env)
+askEnv = EvalM $ \env store -> (([], store), Right env)
 
 localEnv :: (Env -> Env) -> EvalM a -> EvalM a
 localEnv f (EvalM m) = EvalM $ \env store -> m (f env) store
 
 failure :: String -> EvalM a
-failure s = EvalM $ \_ _ -> ([], Left s)
+failure s = EvalM $ \_ store -> (([], store), Left s)
 
 catch :: EvalM a -> EvalM a -> EvalM a
 catch (EvalM m1) (EvalM m2) = EvalM $ \env store ->
@@ -73,7 +76,9 @@ catch (EvalM m1) (EvalM m2) = EvalM $ \env store ->
     (s, Right x) -> (s, Right x)
 
 runEval :: EvalM a -> ([String], Either Error a)
-runEval (EvalM m) = m envEmpty []
+runEval (EvalM m) =
+  let ((console, _), val) = m envEmpty []
+   in (console, val)
 
 evalIntBinOp :: (Integer -> Integer -> EvalM Integer) -> Exp -> Exp -> EvalM Val
 evalIntBinOp f e1 e2 = do
@@ -90,10 +95,13 @@ evalIntBinOp' f =
     f' x y = pure $ f x y
 
 evalPrint :: String -> EvalM ()
-evalPrint s = EvalM $ \_ _ -> ([s], Right ())
+evalPrint s = EvalM $ \_ store -> (([s], store), Right ())
 
 combineStates :: State -> State -> State
-combineStates s1 s2 = s1 ++ s2
+combineStates (console1, store1) (console2, store2) =
+  (console1 ++ console2, foldr expand store1 store2)
+  where
+    expand (key, val) = storeExtend key val
 
 showVal :: Val -> String
 showVal (ValInt x) = show x
@@ -101,13 +109,13 @@ showVal (ValBool x) = show x
 showVal (ValFun {}) = "#<fun>"
 
 evalKvPut :: Val -> Val -> EvalM ()
-evalKvPut key val = EvalM $ \_ -> (\_ -> ([], Right ())) . storeExtend key val
+evalKvPut key val = EvalM $ \_ store -> (([], storeExtend key val store), Right ())
 
 evalKvGet :: Val -> EvalM Val
 evalKvGet key = EvalM $ \_ store ->
   case lookup key store of
-    Just val -> ([], Right val)
-    Nothing -> ([], Left $ "Invalid key: " ++ show key)
+    Just val -> (([], store), Right val)
+    Nothing -> (([], store), Left $ "Invalid key: " ++ show key)
 
 eval :: Exp -> EvalM Val
 eval (CstInt x) = pure $ ValInt x
@@ -162,14 +170,6 @@ eval (TryCatch e1 e2) =
 eval (Print vname e) =
   eval e >>= \val -> (\() -> val) <$> evalPrint (vname ++ ": " ++ showVal val)
 eval (KvPut k v) = eval v >>= \val -> (\() -> val) <$> (eval k >>= \key -> evalKvPut key val)
--- instance Monad EvalM where
---   EvalM x >>= f = EvalM $ \env store ->
---     case x env store of
---       (s, Left err) -> (s, Left err)
---       (s, Right x') ->
---         let EvalM y = f x'
---             (s', res) = y env store
---          in (combineStates s s', res)
 eval (KvGet k) =
   do
     key <- eval k
