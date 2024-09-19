@@ -2,6 +2,7 @@
 
 #show: doc => assignment(
 		title: [ Advanced Programming \ Home Assignment 1 ],
+        author: ("Carlo Rosso", "Chinar Shah"),
 		doc
 )
 
@@ -53,9 +54,6 @@ Basically, I put parentheses around every expression, except for:
 - `CstBool`;
 - `Var`.
 
-I wonder if it is mandatory not to put parentheses around some expressions for
-example `Apply` in the function part of another `Apply` expression.
-
 = Answers to Questions
 
 #ask()[
@@ -105,27 +103,28 @@ If it finishes successfully, then that is the result of the `TryCatch`. If it
 encounters a failure `(Left)`, then we evaluate the second expression [...].
 ]
 
-Since, it is clearly stated that we should evaluate the first expression first,
-and only if it fails we should evaluate the second expression, it would not be
-correct to evaluate both subexpressions at the same time.\
-Finally, considering that Haskell is a lazy language, it is possible to 
-evaluate both subexpression at the same time as follows:
+Since it is explicitly stated that we should evaluate the first expression
+first, and only evaluate the second expression if the first one fails, it would
+be incorrect to evaluate both subexpressions simultaneously. However, because
+Haskell is a lazy language, it is possible to write code that allows both
+subexpressions to be evaluated at the same time, as shown below:
+
 
 ```haskell
-eval env (TryCatch body exception) =
+eval env (TryCatch body except) =
   let result = eval env body
-      except = eval env exception
+      result2 = eval env except
    in case result of
-        Left _ -> except
+        Left _ -> result2
         _ -> result
 ```
 
-In this case, the `except` expression is evaluated at the same time as the
-`result` expression, but Haskell is going to evaluate `except` only if `result`
-fails.\
-Finally, if `except` does not depend on `result`, it does not change the
-environment (`env`), so it does not have side effects, and it does terminate,
-then it is not wrong to evaluate both subexpressions at the same time, for real.
+In this case, we call `eval` on the  `except` expression at the same time as 
+the `result` expression, but Haskell is going to evaluate `except` only if 
+`body` fails.\
+Finally, if `except` does not depend on `body`'s evaluation, it does not produce
+side effects and it terminates - then it is correct to evaluate both 
+subexpressions at the same time in practice.
 
 #ask()[
 Is it possible for your implementation of `eval` to go into an

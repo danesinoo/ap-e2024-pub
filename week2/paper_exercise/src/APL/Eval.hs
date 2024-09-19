@@ -63,6 +63,13 @@ add _a _b = unitM Wrong
 
 apply :: Value -> Value -> M Value
 apply (Fun k) a = bindM tickM (\() -> k a)
+
+-- bindM :: M a -> (a -> M b) -> M b
+-- bindM m k s0 =
+--   let (a, s1) = m s0
+--       (b, s2) = k a s1
+--    in (b, s2)
+
 -- apply (Fun k) a = k a
 -- apply f _a = errorM ("should be function: " ++ showval f)
 apply _f _a = unitM Wrong
@@ -71,6 +78,7 @@ test :: Term -> String
 test t = showM (interp t [])
 
 {- The Identity Monad -}
+{-
 type M a = a
 
 unitM :: a -> M a
@@ -82,6 +90,7 @@ bindM a k = k a
 showM :: M Value -> String
 showM a = showval a
 
+-}
 {- The Error messages Monad -}
 {-
 
@@ -151,7 +160,6 @@ resetM q m p = m q
 
 {- The State Monad -}
 
-{-
 type State = Int
 
 type M a = State -> (a, State)
@@ -168,14 +176,13 @@ bindM m k s0 =
 showM :: M Value -> String
 showM m =
   let (a, s1) = m 0
-   in "Value: " ++ showval a ++ "; Count: " ++ showInt s1 ""
+   in "Value: " ++ showval a ++ "; Count: " ++ show s1
 
 tickM :: M ()
 tickM s = ((), s + 1)
 
 fetchM :: M State
 fetchM s = (s, s)
--}
 
 {- The Output Monad -}
 

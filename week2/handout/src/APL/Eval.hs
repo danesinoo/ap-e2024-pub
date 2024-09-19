@@ -54,6 +54,7 @@ runEval (EvalM m) = m envEmpty
 askEnv :: EvalM Env
 askEnv = EvalM $ \env -> Right env
 
+-- localEnv :: (Env -> Env) -> EvalM a
 localEnv :: (Env -> Env) -> EvalM a -> EvalM a
 localEnv f (EvalM x) = EvalM $ \env -> x (f env)
 

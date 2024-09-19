@@ -179,9 +179,9 @@ tests =
       --
       testCase "Apply body fails last" $
         eval envEmpty (Apply (Lambda "x" (Var "y")) (CstInt 0))
-          @?= Left "Unknown variable: y"
-          --
-          -- testCase "Loop" $
-          --   eval envEmpty (Let "x" (Lambda "y" (Apply (Var "y") (Var "y"))) (Apply (Var "x") (Var "x")))
-          --     @?= Right (ValInt 8)
+          @?= Left
+            "Unknown variable: y"
+     --  testCase "Loop" $
+     --    eval envEmpty (Let "x" (Lambda "y" (Apply (Var "y") (Var "y"))) (Apply (Var "x") (Var "x")))
+     --      @?= Right (ValInt 8)
     ]
