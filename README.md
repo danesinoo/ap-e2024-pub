@@ -87,7 +87,16 @@ The lectures are on Tuesday 10:00-12:00 in Aud 01 at HCØ and Thursday
 The exercise classes are both on Thursday, at 10:00-12:00 and
 15:00-17:00 respectively.
 
+There is also a study café, where you can get extra help on the assignments (or
+anything else related to the course), on Fridays at 13:00-15:00 in Lille UP1.
+
 September 3rd, marks the beginning of the course, with the first lecture.
+
+|       | Monday | Tuesday | Wednesday | Thursday  | Friday |
+|-------|--------|---------|-----------|-----------|--------|
+| 10-12 |        | Lecture |           | Exercises |        |
+| 13-15 |        |         |           | Lecture   | Café   |
+| 15-17 |        |         |           | Exercises |        |
 
 ### Exercise class locations
 
@@ -186,6 +195,15 @@ We strongly encourage you not to work alone. Each group must make
 their own solutions and cannot share implementations and report with
 other. You may discuss material and ideas.
 
+### Handin
+
+Assignment handins are on Absalon. You *must* join an Assignment
+Group, even when handing in alone. This is done on Absalon by going to
+*People*, then *Groups* and picking either an empty one, or one where
+the existing members have agreed to let you join. When one member of
+an Assignment Group hands in the assignment, it counts as a handin for
+the entire group.
+
 ### General assignment rules
 
 The following rules apply to all assignments. They are intended to
@@ -217,9 +235,19 @@ you are asked to implement.
    ponder for each file whether it is something it makes sense to hand
    to your TA. At a *minimum*, run `cabal clean` before handing in.
 
+8. You are allowed to use any Haskell module that is available in the
+   packages specified in the `.cabal` file in the handout. You are not
+   allowed to add additional library dependencies.
+
 Violation of these rules will result in points deductions. If you
 violate these rules at the exam, it will negatively influence your
 grade.
+
+### Assignment Café
+
+Every Friday at Lille UP-1 at DIKU from 13:00-15:00 (unless otherwise
+specified) we host an assignment café where you can get help with the
+assignment from a TA.
 
 ## Exam
 
