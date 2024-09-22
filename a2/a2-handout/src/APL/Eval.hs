@@ -22,16 +22,13 @@ type Env = [(VName, Val)]
 envEmpty :: Env
 envEmpty = []
 
-envExtend :: VName -> Val -> Env -> Env
-envExtend v val env = (v, val) : env
+mapExtend :: key -> val -> [(key, val)] -> [(key, val)]
+mapExtend v val env = (v, val) : env
 
-envLookup :: VName -> Env -> Maybe Val
-envLookup = lookup
+mapLookup :: (Eq key) => key -> [(key, val)] -> Maybe val
+mapLookup = lookup
 
 type Store = [(Val, Val)]
-
-storeExtend :: Val -> Val -> Store -> Store
-storeExtend key val store = (key, val) : filter (\(y, _) -> y /= key) store
 
 type Error = String
 
@@ -101,7 +98,7 @@ combineStates :: State -> State -> State
 combineStates (console1, store1) (console2, store2) =
   (console1 ++ console2, foldr expand store1 store2)
   where
-    expand (key, val) = storeExtend key val
+    expand (key, val) = mapExtend key val
 
 showVal :: Val -> String
 showVal (ValInt x) = show x
@@ -109,7 +106,7 @@ showVal (ValBool x) = show x
 showVal (ValFun {}) = "#<fun>"
 
 evalKvPut :: Val -> Val -> EvalM ()
-evalKvPut key val = EvalM $ \_ store -> (([], storeExtend key val store), Right ())
+evalKvPut key val = EvalM $ \_ store -> (([], mapExtend key val store), Right ())
 
 evalKvGet :: Val -> EvalM Val
 evalKvGet key = EvalM $ \_ store ->
@@ -122,7 +119,7 @@ eval (CstInt x) = pure $ ValInt x
 eval (CstBool b) = pure $ ValBool b
 eval (Var v) = do
   env <- askEnv
-  case envLookup v env of
+  case mapLookup v env of
     Just x -> pure x
     Nothing -> failure $ "Unknown variable: " ++ v
 eval (Add e1 e2) = evalIntBinOp' (+) e1 e2
@@ -153,7 +150,7 @@ eval (If cond e1 e2) = do
     _ -> failure "Non-boolean conditional."
 eval (Let var e1 e2) = do
   v1 <- eval e1
-  localEnv (envExtend var v1) $ eval e2
+  localEnv (mapExtend var v1) $ eval e2
 eval (Lambda var body) = do
   env <- askEnv
   pure $ ValFun env var body
@@ -162,15 +159,13 @@ eval (Apply e1 e2) = do
   v2 <- eval e2
   case (v1, v2) of
     (ValFun f_env var body, arg) ->
-      localEnv (const $ envExtend var arg f_env) $ eval body
+      localEnv (const $ mapExtend var arg f_env) $ eval body
     (_, _) ->
       failure "Cannot apply non-function"
 eval (TryCatch e1 e2) =
   eval e1 `catch` eval e2
 eval (Print vname e) =
   eval e >>= \val -> (\() -> val) <$> evalPrint (vname ++ ": " ++ showVal val)
-eval (KvPut k v) = eval v >>= \val -> (\() -> val) <$> (eval k >>= \key -> evalKvPut key val)
-eval (KvGet k) =
-  do
-    key <- eval k
-    evalKvGet key
+eval (KvPut k v) = eval v >>= \val -> 
+    (\() -> val) <$> (eval k >>= \key -> evalKvPut key val)
+eval (KvGet k) = eval k >>= \key -> evalKvGet key

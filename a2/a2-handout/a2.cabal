@@ -16,8 +16,8 @@ library
       , tasty-hunit
     exposed-modules:
         APL.AST
-        APL.Check
-        APL.Check_Tests
+--        APL.Check
+--        APL.Check_Tests
         APL.Eval
         APL.Eval_Tests
 
