@@ -31,4 +31,25 @@ tests :: TestTree
 tests =
   testGroup
     "Parsing"
-    []
+    [ testGroup
+        "Constants"
+        [ parserTest "123" $ CstInt 123,
+          parserTest " 123" $ CstInt 123,
+          parserTest "123 " $ CstInt 123,
+          parserTestFail "123xyz"
+        ],
+      testGroup
+        "Booleans"
+        [ parserTest "true" $ CstBool True,
+          parserTest " false" $ CstBool False
+        ],
+      testGroup
+        "Variables"
+        [ parserTest "x" $ Var "x",
+          parserTest " x" $ Var "x",
+          parserTest "x " $ Var "x",
+          parserTest "x1" $ Var "x1",
+          parserTest "x1y2" $ Var "x1y2",
+          parserTestFail "1x"
+        ]
+    ]
