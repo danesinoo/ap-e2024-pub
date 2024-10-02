@@ -1,4 +1,4 @@
-module APL.Parser (parseAPL) where
+module APL.Parser where -- (parseAPL) where
 
 import APL.AST (Exp (..), VName)
 import Control.Monad (void)
@@ -87,9 +87,7 @@ pPrintExp = do
   Print s <$> pAtom
 
 pKvGetExp :: Parser Exp
-pKvGetExp = do
-  lKeyword "get"
-  KvGet <$> pAtom
+pKvGetExp = KvGet <$> (lKeyword "get" *> pAtom)
 
 pKvPutExp :: Parser Exp
 pKvPutExp = do
@@ -142,7 +140,7 @@ pExp3 = pLExp >>= chain
       choice
         [ do
             lString "**"
-            y <- pLExp
+            y <- pExp3
             chain $ Pow x y,
           pure x
         ]

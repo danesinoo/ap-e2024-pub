@@ -40,7 +40,9 @@ tests =
           parserTest "x-y" $ Sub (Var "x") (Var "y"),
           parserTest "x*y" $ Mul (Var "x") (Var "y"),
           parserTest "x/y" $ Div (Var "x") (Var "y"),
-          parserTest "x**y" $ Pow (Var "x") (Var "y")
+          parserTest "x**y" $ Pow (Var "x") (Var "y"),
+          parserTest "x ** y ** z" $ Pow (Var "x") (Pow (Var "y") (Var "z")),
+          parserTest "(x ** y) ** z" $ Pow (Pow (Var "x") (Var "y")) (Var "z")
         ],
       testGroup
         "Operator priority"
@@ -50,7 +52,8 @@ tests =
           parserTest "x*y*z" $ Mul (Mul (Var "x") (Var "y")) (Var "z"),
           parserTest "x/y/z" $ Div (Div (Var "x") (Var "y")) (Var "z"),
           parserTest "x*y**z" $ Mul (Var "x") (Pow (Var "y") (Var "z")),
-          parserTest "x+y==y+x" $ Eql (Add (Var "x") (Var "y")) (Add (Var "y") (Var "x"))
+          parserTest "x+y==y+x" $ Eql (Add (Var "x") (Var "y")) (Add (Var "y") (Var "x")),
+          parserTest "x ** (y z)" $ Pow (Var "x") (Apply (Var "y") (Var "z"))
         ],
       testGroup
         "Conditional expressions"
@@ -65,24 +68,66 @@ tests =
         ],
       testGroup
         "Function Application"
-        [ parserTest "x y z" $ (Apply (Apply (Var "x") (Var "y")) (Var "z")),
-          parserTest "x(y z)" $ (Apply (Var "x") (Apply (Var "y") (Var "z"))),
-          parserTestFail "x if x then y else z" -- if is not an argument
+        [ parserTest "x y z" $ Apply (Apply (Var "x") (Var "y")) (Var "z"),
+          parserTest "x(y z)" $ Apply (Var "x") (Apply (Var "y") (Var "z")),
+          parserTestFail "x if x then y else z",
+          parserTest "f(x) y z" $ Apply (Apply (Apply (Var "f") (Var "x")) (Var "y")) (Var "z"),
+          parserTest "x (y z) w" $ Apply (Apply (Var "x") (Apply (Var "y") (Var "z"))) (Var "w")
         ],
       testGroup
-        "Printing Putting and Getting"
-        [ parserTest "put x y" $ KvPut (Var "x") (Var "y"),
-          parserTest "get x + y" $ Add (KvGet (Var "x")) (Var "y"),
+        "Print"
+        [ parserTest "print \"foo\" x" $ Print "foo" (Var "x"),
+          parserTestFail "print \"missing closing quote",
+          -- Non string first argument should fail
+          parserTestFail "print 123",
+          -- Print with a function application
+          parserTest "print \"log\" (f x)" $ Print "log" (Apply (Var "f") (Var "x")),
+          -- Nested print expressions
+          parserTest "print \"nested\" (print \"inner\" 1)" $ Print "nested" (Print "inner" (CstInt 1))
+        ],
+      testGroup
+        "Get"
+        [ parserTest "get x + y" $ Add (KvGet (Var "x")) (Var "y"),
           parserTest "getx" $ Var "getx",
-          parserTest "print \"foo\" x" $ Print "foo" (Var "x")
+          -- Get cannot work with control structures like if
+          parserTestFail "get if x then y else z",
+          -- Get with a function application
+          parserTest "get (f x)" $ KvGet (Apply (Var "f") (Var "x"))
         ],
       testGroup
-        "Lambdas let-binding and try-catch"
+        "Put"
+        [ parserTest "put x y" $ KvPut (Var "x") (Var "y"),
+          -- Nested put operations
+          parserTest "put (put x y) z" $ KvPut (KvPut (Var "x") (Var "y")) (Var "z"),
+          -- Put with strings (invalid arguments)
+          parserTestFail "put \"key\" \"value\""
+        ],
+      testGroup
+        "Lambda"
+        [ parserTest "\\x -> x" $ Lambda "x" (Var "x"),
+          -- Lambda with an `if` expression
+          parserTest "\\x -> if x then y else z" $ Lambda "x" (If (Var "x") (Var "y") (Var "z")),
+          -- Lambda with a more complex expression
+          parserTest "\\x -> (x + 1) * 2" $ Lambda "x" (Mul (Add (Var "x") (CstInt 1)) (CstInt 2)),
+          -- Lambda with two variables
+          parserTestFail "\\x y -> x + y"
+        ],
+      testGroup
+        "let-binding"
         [ parserTest "let x = y in z" $ Let "x" (Var "y") (Var "z"),
           parserTestFail "let true = y in z",
-          parserTestFail "x let v = 2 in v",
-          parserTest "try x catch y" $ TryCatch (Var "x") (Var "y"),
-          parserTest "\\x -> x" $ Lambda "x" (Var "x")
+          -- Let binding with an if expression
+          parserTest "let x = if y then z else w in x + 1" $ Let "x" (If (Var "y") (Var "z") (Var "w")) (Add (Var "x") (CstInt 1))
+        ],
+      testGroup
+        "try-catch"
+        [ parserTest "try x catch y" $ TryCatch (Var "x") (Var "y"),
+          -- Failure case: Try without catch should fail
+          parserTestFail "try x",
+          -- Failure case: Catch without try should fail
+          parserTestFail "catch y",
+          -- Try-catch with function applications
+          parserTest "try f x catch g y" $ TryCatch (Apply (Var "f") (Var "x")) (Apply (Var "g") (Var "y"))
         ],
       testGroup
         "Lexing edge cases"
