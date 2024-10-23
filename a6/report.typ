@@ -1,4 +1,122 @@
-#import "@template/setting:0.1.0": *
+#let content_settings(doc) = {
+	show par: set block(spacing: 1.5em)
+	show heading: it => {
+		set block(above: 1.4em, below: 1em)
+        it
+	}
+
+	set page(
+       	paper: "a4",
+        margin: (
+            top: 3cm,
+            bottom: 4cm,
+            left: 3.2cm,
+            right: 3.2cm
+        ),
+		numbering: "1 / 1",
+	)
+	
+	set par(
+	   	leading: 1em,
+	   	first-line-indent: 1em,
+	   	justify: true,
+	)
+
+	set enum(
+		indent: 2em,
+		numbering: "1.",
+	)
+
+	set list(
+		indent: 1em,
+	)
+
+	set math.mat(
+		delim: "[",
+	)
+
+	set math.vec(
+		delim: "[",
+	)
+
+    set quote(block: true)
+
+	context counter(page).update(1)
+
+	set heading(
+	   	numbering: "1.1",
+	   	bookmarked: true,
+	)
+
+    set text(font: "EB Garamond", size: 12pt, lang: "en")
+
+    set math.equation(
+        numbering: "(1)",
+    )
+
+    doc
+}
+
+#let table_of_contents(
+	name: "Contents"
+) = {
+	show outline.entry.where(
+		level: 1
+	): it => {
+		v(2em, weak: true)
+		strong(it)
+	}
+
+	outline(
+		fill: box(width: 95%, repeat([#h(0.5em).])),
+		indent: auto,
+		title: name,
+	)
+}
+
+#let make_title(title, author) = [
+    #v(3em)
+    #align(center)[
+        #text(size: 24pt)[
+            * #title *
+        ]
+    ]
+
+    #v(1em)
+
+    #align(center)[
+        #text(author, size: 16pt)
+    ]
+]
+
+#let ask(question) = block[
+    * #question *
+]
+
+#let assignment(
+    title: none,
+    author: ("Carlo Rosso rkm957",),
+    doc,
+) = {
+    show: body => content_settings(body)
+
+    set document(
+        title: title,
+        author: author,
+        date: datetime.today(),    
+    )
+
+    make_title(title, author.join(", "))
+
+    v(1cm)
+
+    table_of_contents()
+
+    v(1cm)
+
+    doc
+}
+
 
 #show: doc => assignment(
 		title: [ Advanced Programming \ Home Assignment 6 ],
