@@ -1,4 +1,4 @@
-module SPC
+odule SPC
   ( -- * SPC startup
     SPC,
     startSPC,

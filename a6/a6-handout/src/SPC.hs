@@ -25,19 +25,18 @@ import Control.Concurrent
     threadDelay,
   )
 import Control.Exception (SomeException, catch)
-import Control.Monad (ap, forM_, forever, liftM, when)
+import Control.Monad (ap, forM_, forever, liftM, void, when)
 import Data.List (partition)
 import GenServer
-
--- import System.Clock.Seconds (Clock (Monotonic), Seconds, getTime)
+import System.Clock.Seconds (Clock (Monotonic), Seconds, getTime)
 
 -- First some general utility functions.
 
 -- | Retrieve Unix time using a monotonic clock. You cannot use this
 -- to measure the actual world time, but you can use it to measure
 -- elapsed time.
--- getSeconds :: IO Seconds
--- getSeconds = getTime Monotonic
+getSeconds :: IO Seconds
+getSeconds = getTime Monotonic
 
 -- | Remove mapping from association list.
 removeAssoc :: (Eq k) => k -> [(k, v)] -> [(k, v)]
@@ -84,10 +83,9 @@ data SPCMsg
     MsgJobStatus JobId (ReplyChan JobStatus)
   | -- | Reply when the job is done.
     MsgJobWait JobId (ReplyChan JobDoneReason)
-  | --  | -- | Some time has passed.
-    --    MsgTick
-
-    -- | A worker has been added.
+  | -- | Some time has passed.
+    MsgTick
+  | -- | A worker has been added.
     MsgWorkerAdd WorkerName (ReplyChan (Either String Worker))
   | -- | A job has been done.
     MsgJobDone JobId JobDoneReason WorkerName
@@ -100,7 +98,7 @@ newtype SPC = SPC (Server SPCMsg)
 -- | The central state. Must be protected from the bourgeoisie.
 data SPCState = SPCState
   { spcJobsPending :: [(JobId, Job)],
-    spcJobsRunning :: [(JobId, Job)],
+    spcJobsRunning :: [(JobId, Seconds)],
     spcJobsDone :: [(JobId, JobDoneReason)],
     spcJobCounter :: JobId,
     spcWorkers :: [(WorkerName, Worker)],
@@ -179,21 +177,26 @@ jobDone jobid reason = do
             spcWaiters = notWaiting
           }
 
--- workerIsIdle :: WorkerName -> Worker -> SPCM ()
--- workerIsIdle = undefined
---
--- workerIsGone :: WorkerName -> SPCM ()
--- workerIsGone = undefined
---
--- checkTimeouts :: SPCM ()
--- checkTimeouts = pure () -- change in Task 4
---
--- workerExists :: WorkerName -> SPCM Bool
--- workerExists = undefined
+workerIsIdle :: WorkerName -> Worker -> SPCM ()
+workerIsIdle = undefined
+
+workerIsGone :: WorkerName -> SPCM ()
+workerIsGone = undefined
+
+checkTimeouts :: SPCM ()
+checkTimeouts = do
+  now <- io getSeconds
+  state <- get
+  forM_ (spcJobsRunning state) $ \(jobid, deadline) ->
+    when (now >= deadline) $ do
+      jobDone jobid DoneTimeout
+      io $ send (spcChan state) $ MsgJobCancel jobid
+
+workerExists :: WorkerName -> SPCM Bool
+workerExists = undefined
 
 handleMsg :: Chan SPCMsg -> SPCM ()
 handleMsg c = do
-  --  checkTimeouts
   schedule
   msg <- io $ receive c
   case msg of
@@ -218,7 +221,7 @@ handleMsg c = do
         (_, _, Just r) -> JobDone r
         _ -> JobUnknown
     MsgJobWait jobid to -> modify $ \s -> s {spcWaiters = (jobid, to) : spcWaiters s}
-    -- MsgTick -> undefined -- todo!
+    MsgTick -> checkTimeouts
     MsgWorkerAdd wname rsvp -> do
       state <- get
       case lookup wname $ spcWorkers state of
@@ -267,13 +270,12 @@ startSPC = do
             spcChan = c
           }
   c <- spawn $ \c -> runSPCM (initial_state c) $ forever $ handleMsg c
-  --  void $ spawn $ timer c
+  void $ spawn $ timer c
   pure $ SPC c
-
--- where
---   timer c _ = forever $ do
---     threadDelay 1000000 -- 1 second
---     sendTo c MsgTick
+  where
+    timer c _ = forever $ do
+      sendTo c MsgTick
+      threadDelay 1000000
 
 -- | Add a job for scheduling.
 jobAdd :: SPC -> Job -> IO JobId
@@ -315,7 +317,13 @@ workerAssignJob (Worker w) = do
     [] -> pure ()
     (jid, job) : rest -> do
       io $ sendTo w $ WorkerJobNew jid job
-      put state {spcJobsPending = rest, spcJobsRunning = (jid, job) : spcJobsRunning state}
+      now <- io getSeconds
+      let deadline = now + fromIntegral (jobMaxSeconds job)
+      put
+        state
+          { spcJobsPending = rest,
+            spcJobsRunning = (jid, deadline) : spcJobsRunning state
+          }
 
 cancelJob :: JobId -> SPCM ()
 cancelJob jobid = do
@@ -419,10 +427,6 @@ workerHandle c = do
                 onException _ = do
                   send c $ WorkerJobDone jid DoneCrashed
             catch val onException
-          _ <- ioW $ forkIO $ do
-            threadDelay $ jobMaxSeconds job * 1000000
-            killThread tid
-            send c $ WorkerJobDone jid DoneTimeout
           putW $ state {exec = Just (jid, tid)}
     WorkerJobDone jid reason -> do
       case exec state of
