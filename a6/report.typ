@@ -166,6 +166,8 @@ timed out. Probably this is the simplest way to implement timeouts.
 
 Code above, did not do much, I just copied the exercise code.
 
+= Questions
+
 #ask[
 Did you decide to implement timeouts centrally in SPC, or decentrally in the
 worker threads? What are the pros and cons of your approach? Is there any
@@ -190,3 +192,18 @@ observable effect?
     - SPC notifies Worker: job Cancel
 4. Worker kills job
 5. Worker notifies SPC: job Cancel
+
+#ask[
+If a worker thread were somehow to crash (either due to a bug in the worker
+thread logic, or because a scoundrel killThreads it), how would that impact the
+functionality of the rest of SPC?
+]
+
+Depends by the implementation of the timer. If the timer is managed by the
+Worker, the SPC would never know of the crash of the worker until the SPC
+actually tries to communicate with the worker. Therefore the job which was being
+executed by the crashed worker would never be completed and would be stuck in
+the Running state. \
+If the timer is managed by the SPC, the SPC would notice that the job has
+exceeded the deadline and would cancel the job. The job would be moved into the
+`spcJobsDone` list with the status `DoneTimeout` and that would be it.
